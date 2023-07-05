@@ -108,12 +108,28 @@ makeNetworkingConf() {
   if [ -n "$eth1_name" ];then
     eth1_ip4s=$(ip address show dev "$eth1_name" | grep 'inet ' | sed -r 's|.*inet ([0-9.]+)/([0-9]+).*|{ address="\1"; prefixLength=\2; }|')
     eth1_ip6s=$(ip address show dev "$eth1_name" | grep 'inet6 ' | sed -r 's|.*inet6 ([0-9a-f:]+)/([0-9]+).*|{ address="\1"; prefixLength=\2; }|' || '')
+    eth1_ip4s_route=$(ip route show dev "$eth1_name" | grep via | sed -r 's|([0-9.]+)/([0-9]) via ([0-9.]+).*|{ address="\1"; prefixLength=\2; via="\3"; }|')
+    eth1_ip4s_routes=""
+    if [ -n "$eth1_ip4s_route" ]; then
+      # Route is via a gateway, so we need to add a route to the gateway as well
+      eth1_ip4s_route_via=$(ip route show dev "$eth1_name" | grep via | sed -r 's|([0-9.]+)/([0-9]) via ([0-9.]+).*|\3|')
+      eth1_ip4s_routes=$(cat << EOF
+        ipv4.routes = [
+          { address = "$eth1_ip4s_route_via"; prefixLength = 32; options = { scope = "link"; }; }
+          $eth1_ip4s_route
+        ];
+EOF
+)
+    fi
+
+
     ether1=$(ip address show dev "$eth1_name" | grep link/ether | sed -r 's|.*link/ether ([0-9a-f:]+) .*|\1|')
     interfaces1=$(cat << EOF
       $eth1_name = {
         ipv4.addresses = [$(for a in "${eth1_ip4s[@]}"; do echo -n "
           $a"; done)
         ];
+        $eth1_ip4s_routes
         ipv6.addresses = [$(for a in "${eth1_ip6s[@]}"; do echo -n "
           $a"; done)
         ];

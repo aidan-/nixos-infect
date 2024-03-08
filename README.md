@@ -24,6 +24,7 @@ This script has successfully been tested on at least the follow hosting provider
 * [Windcloud](https://windcloud.de/)
 * [Clouding.io](https://clouding.io)
 * [Scaleway](https://scaleway.com)
+* [RackNerd](https://my.racknerd.com/index.php?rp=/store/black-friday-2022)
 
 Should you find that it works on your hoster,
 feel free to update this README and issue a pull request.
@@ -117,7 +118,8 @@ runcmd:
 |Ubuntu      |18.04.3 (LTS) x64|**success**|2020-03-30|
 |Ubuntu      |19.10 x64        |**success**|2020-03-30|
 |Ubuntu      |20.04 x64        |**success**|2022-03-23|
-|Ubuntu      |22.04 x64        |**success**|2022-10-14|
+|Ubuntu      |22.04 x64        |**success**|2023-06-05|
+|Ubuntu      |22.10 x64        | _failure_ |2023-06-05|
 
 ### Vultr
 To set up a NixOS Vultr server, instantiate an Ubuntu box with the following "Cloud-Init User-Data":
@@ -139,20 +141,22 @@ Allow for a few minutes over the usual Ubuntu deployment time for NixOS to downl
 
 ### Hetzner cloud
 Hetzner cloud works out of the box.
-When creating a server provide the following script as "User data":
+When creating a server provide the following yaml as "Cloud config":
 
-```
-#!/bin/sh
+```yaml
+#cloud-config
 
-curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=hetznercloud NIX_CHANNEL=nixos-22.11 bash 2>&1 | tee /tmp/infect.log
+runcmd:
+  - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=hetznercloud NIX_CHANNEL=nixos-22.11 bash 2>&1 | tee /tmp/infect.log
 ```
 
 #### Tested on
 |Distribution|       Name      | Status    | test date|
 |------------|-----------------|-----------|----------|
-| Debian     | 11              |**success**|2021-11-26|
+| Debian     | 11              |**success**|2023-04-29|
+| Debian     | 12    aarch64   |**success**|2023-09-02|
 | Ubuntu     | 20.04 x64       |**success**|(Unknown) |
-| Ubuntu     | 22.04 x64       |**success**|2022-06-29|
+| Ubuntu     | 22.04 x64       |**success**|2023-04-29|
 | Ubuntu     | 22.04 aarch64   |**success**|2023-04-16|
 
 ### InterServer VPS
@@ -213,10 +217,14 @@ Tested for both VM.Standard.E2.1.Micro (x86) and VM.Standard.A1.Flex (AArch64) i
 |Oracle Linux| 7.9[1]          |**success**|2022-04-19| free amd |
 |Ubuntu      | 22.04           |**success**|2022-11-13| free arm |
 |Oracle Linux| 9.1[2]          |**success**|2023-03-29| free arm |
+|Oracle Linux| 8.7[3]          |**success**|2023-06-06| free amd |
+|AlmaLinux OS| 9.2.20230516    |**success**|2023-07-05| free arm |
 
     [1] The Oracle 7.9 layout has 200Mb for /boot 8G for swap
     PR#100 Adopted 8G Swap device
     [2] OL9.1 had 2GB /boot, 100MB /boot/efi (nixos used as /boot) and swapfile
+    [3] Both 22.11 and 23.05 failed to boot, but installing 22.05 and then upgrading
+    worked out as intended.
 
 ### Aliyun ECS
 Aliyun ECS tested on ecs.s6-c1m2.large, region **cn-shanghai**, needs a few tweaks:
@@ -332,3 +340,20 @@ runcmd:
 |Distribution|       Name      | Status    | test date|
 |------------|-----------------|-----------|----------|
 |Ubuntu      | 20.04           | success   |2020-11-??|
+
+### RackNerd
+Remember that the SSH keys are not automatically generated/uploaded,
+so you need to create them as usual with `ssh-keygen` or some other means,
+add the public key to the `.ssh/authorized_keys` file on the remote host,
+and have a copy of the private key on your local box.
+
+On RackNerd's Ubuntu 20.04, there's no `curl` by default, so `wget -O-` needs to be used instead:
+```command
+# wget -O- https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | NIX_CHANNEL=nixos-22.11 bash -x
+```
+
+#### Tested on
+|Distribution| Name   | Status                     |   test date|
+|------------|--------|----------------------------|------------|
+|AlmaLinux   | 8      | _failure (`tar` missing)_  | 2023-08-29 |
+|Ubuntu      | 20.04  | **success**                | 2023-08-29 |
